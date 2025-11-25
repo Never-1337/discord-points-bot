@@ -1,8 +1,8 @@
 import os
 import json
-import discord
-from discord.ext import commands
-from discord.ui import View, Select
+import nextcord as discord
+from nextcord.ext import commands
+from nextcord.ui import View, Select
 
 TOKEN = os.getenv("TOKEN")
 
@@ -13,6 +13,7 @@ bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 DATA = {"users": {}, "role_rewards": {}}
 
+
 def load_data():
     global DATA
     if os.path.exists(DATA_FILE):
@@ -22,11 +23,14 @@ def load_data():
         except:
             DATA = {"users": {}, "role_rewards": {}}
 
+
 def save_data():
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(DATA, f, indent=4)
 
+
 load_data()
+
 
 async def check_roles(member: discord.Member):
     points = DATA["users"].get(str(member.id), 0)
@@ -38,6 +42,7 @@ async def check_roles(member: discord.Member):
                     await member.add_roles(role)
                 except:
                     pass
+
 
 class AdminMenu(View):
     def __init__(self):
@@ -68,10 +73,12 @@ class AdminMenu(View):
         elif action == "top":
             await interaction.response.send_message("Команда: `!top`", ephemeral=True)
 
+
 @bot.command()
 @commands.has_permissions(manage_guild=True)
 async def menu(ctx):
     await ctx.send("🛠 Меню администратора:", view=AdminMenu())
+
 
 @bot.command()
 async def help(ctx):
@@ -86,6 +93,8 @@ async def help(ctx):
         "!help — список команд"
     )
     await ctx.send(msg)
+
+
 @bot.command()
 async def add(ctx, member: discord.Member, amount: int):
     uid = str(member.id)
@@ -94,6 +103,7 @@ async def add(ctx, member: discord.Member, amount: int):
     await check_roles(member)
     await ctx.send(f"Добавлено {amount} очков пользователю {member.display_name}.")
 
+
 @bot.command()
 async def remove(ctx, member: discord.Member, amount: int):
     uid = str(member.id)
@@ -101,37 +111,48 @@ async def remove(ctx, member: discord.Member, amount: int):
     save_data()
     await ctx.send(f"Снято {amount} очков у пользователя {member.display_name}.")
 
+
 @bot.command()
 async def setreward(ctx, role: discord.Role, threshold: int):
     DATA["role_rewards"][str(role.id)] = threshold
     save_data()
     await ctx.send(f"Роль {role.name} будет выдаваться при {threshold} очках.")
 
+
 @bot.command()
 async def rewards(ctx):
     if not DATA["role_rewards"]:
         return await ctx.send("Награды не настроены.")
+
     lines = ["🎯 **Список наград:**"]
     for rid, threshold in sorted(DATA["role_rewards"].items(), key=lambda x: x[1]):
         role = ctx.guild.get_role(int(rid))
         name = role.name if role else f"Роль {rid}"
         lines.append(f"• {name}: {threshold} очков")
+
     await ctx.send("\n".join(lines))
+
 
 @bot.command()
 async def top(ctx, send_dm: bool = False):
     if not DATA["users"]:
         return await ctx.send("Нет данных о пользователях.")
+
     sorted_users = sorted(DATA["users"].items(), key=lambda x: x[1], reverse=True)
+
     lines = ["📊 **Топ пользователей:**\n"]
     for uid, points in sorted_users:
         member = ctx.guild.get_member(int(uid))
         name = member.display_name if member else f"Пользователь {uid}"
         lines.append(f"• {name}: {points} очков")
+
     text = "\n".join(lines)
+
     if send_dm:
         await ctx.author.send(text)
     else:
         await ctx.send(text)
 
+
 bot.run(TOKEN)
+
