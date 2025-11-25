@@ -1,15 +1,16 @@
 import os
 import json
-import nextcord
-from nextcord.ext import commands
-from nextcord.ui import View, Select
+import discord
+from discord.ext import commands
+from discord.ui import View, Select
 
 TOKEN = os.getenv("TOKEN")
-
 DATA_FILE = "points.json"
-DATA = {"users": {}, "role_rewards": {}}
 
-# ---------------------- ЗАГРУЗКА / СОХРАНЕНИЕ ----------------------
+intents = discord.Intents.all()
+bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
+
+DATA = {"users": {}, "role_rewards": {}}
 
 def load_data():
     global DATA
@@ -26,12 +27,7 @@ def save_data():
 
 load_data()
 
-# ---------------------- НАСТРОЙКА БОТА ----------------------
-
-intents = nextcord.Intents.all()
-bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
-
-async def check_roles(member: nextcord.Member):
+async def check_roles(member: discord.Member):
     points = DATA["users"].get(str(member.id), 0)
     for role_id, threshold in DATA["role_rewards"].items():
         if points >= threshold:
@@ -42,41 +38,32 @@ async def check_roles(member: nextcord.Member):
                 except:
                     pass
 
-# ---------------------- МЕНЮ АДМИНА ----------------------
-
 class AdminMenu(View):
     def __init__(self):
         super().__init__(timeout=None)
         select = Select(
             placeholder="Выберите действие",
             options=[
-                nextcord.SelectOption(label="Начислить очки", value="add"),
-                nextcord.SelectOption(label="Снять очки", value="remove"),
-                nextcord.SelectOption(label="Установить награду", value="reward"),
-                nextcord.SelectOption(label="Список наград", value="rewards"),
-                nextcord.SelectOption(label="Топ пользователей", value="top"),
+                discord.SelectOption(label="Начислить очки", value="add"),
+                discord.SelectOption(label="Снять очки", value="remove"),
+                discord.SelectOption(label="Установить награду", value="reward"),
+                discord.SelectOption(label="Список наград", value="rewards"),
+                discord.SelectOption(label="Топ пользователей", value="top"),
             ]
         )
         select.callback = self.select_action
         self.add_item(select)
 
-    async def select_action(self, interaction: nextcord.Interaction):
+    async def select_action(self, interaction: discord.Interaction):
         action = interaction.data["values"][0]
-        commands_info = {
+        commands_map = {
             "add": "!add @user amount",
             "remove": "!remove @user amount",
             "reward": "!setreward @role amount",
             "rewards": "!rewards",
-            "top": "!top"
+            "top": "!top",
         }
-        await interaction.response.send_message(f"Команда: `{commands_info[action]}`", ephemeral=True)
-
-# ---------------------- КОМАНДЫ ----------------------
-
-@bot.command()
-@commands.has_permissions(manage_guild=True)
-async def menu(ctx):
-    await ctx.send("🛠 Меню администратора:", view=AdminMenu())
+        await interaction.response.send_message(f"Команда: `{commands_map[action]}`", ephemeral=True)
 
 @bot.command()
 async def help(ctx):
@@ -93,7 +80,12 @@ async def help(ctx):
     await ctx.send(msg)
 
 @bot.command()
-async def add(ctx, member: nextcord.Member, amount: int):
+@commands.has_permissions(manage_guild=True)
+async def menu(ctx):
+    await ctx.send("🛠 Меню администратора:", view=AdminMenu())
+
+@bot.command()
+async def add(ctx, member: discord.Member, amount: int):
     uid = str(member.id)
     DATA["users"][uid] = DATA["users"].get(uid, 0) + amount
     save_data()
@@ -101,14 +93,14 @@ async def add(ctx, member: nextcord.Member, amount: int):
     await ctx.send(f"Добавлено {amount} очков пользователю {member.display_name}.")
 
 @bot.command()
-async def remove(ctx, member: nextcord.Member, amount: int):
+async def remove(ctx, member: discord.Member, amount: int):
     uid = str(member.id)
     DATA["users"][uid] = max(0, DATA["users"].get(uid, 0) - amount)
     save_data()
     await ctx.send(f"Снято {amount} очков у пользователя {member.display_name}.")
 
 @bot.command()
-async def setreward(ctx, role: nextcord.Role, threshold: int):
+async def setreward(ctx, role: discord.Role, threshold: int):
     DATA["role_rewards"][str(role.id)] = threshold
     save_data()
     await ctx.send(f"Роль {role.name} будет выдаваться при {threshold} очках.")
@@ -135,9 +127,6 @@ async def top(ctx):
         name = member.display_name if member else f"Пользователь {uid}"
         lines.append(f"• {name}: {points} очков")
     await ctx.send("\n".join(lines))
-
-
-# ---------------------- СТАРТ ----------------------
 
 bot.run(TOKEN)
 
