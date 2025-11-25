@@ -5,6 +5,7 @@ from discord.ext import commands
 from discord.ui import View, Select
 
 TOKEN = os.getenv("TOKEN")
+
 DATA_FILE = "points.json"
 
 intents = discord.Intents.all()
@@ -48,7 +49,7 @@ class AdminMenu(View):
                 discord.SelectOption(label="Снять очки", value="remove"),
                 discord.SelectOption(label="Установить награду", value="reward"),
                 discord.SelectOption(label="Список наград", value="rewards"),
-                discord.SelectOption(label="Топ пользователей", value="top"),
+                discord.SelectOption(label="Таблица пользователей", value="top"),
             ]
         )
         select.callback = self.select_action
@@ -56,14 +57,21 @@ class AdminMenu(View):
 
     async def select_action(self, interaction: discord.Interaction):
         action = interaction.data["values"][0]
-        commands_map = {
-            "add": "!add @user amount",
-            "remove": "!remove @user amount",
-            "reward": "!setreward @role amount",
-            "rewards": "!rewards",
-            "top": "!top",
-        }
-        await interaction.response.send_message(f"Команда: `{commands_map[action]}`", ephemeral=True)
+        if action == "add":
+            await interaction.response.send_message("Команда: `!add @user amount`", ephemeral=True)
+        elif action == "remove":
+            await interaction.response.send_message("Команда: `!remove @user amount`", ephemeral=True)
+        elif action == "reward":
+            await interaction.response.send_message("Команда: `!setreward @role amount`", ephemeral=True)
+        elif action == "rewards":
+            await interaction.response.send_message("Команда: `!rewards`", ephemeral=True)
+        elif action == "top":
+            await interaction.response.send_message("Команда: `!top`", ephemeral=True)
+
+@bot.command()
+@commands.has_permissions(manage_guild=True)
+async def menu(ctx):
+    await ctx.send("🛠 Меню администратора:", view=AdminMenu())
 
 @bot.command()
 async def help(ctx):
@@ -73,16 +81,11 @@ async def help(ctx):
         "!remove @user <amount> — снять очки\n"
         "!setreward @role <threshold> — установить награду\n"
         "!rewards — список наград\n"
-        "!top — таблица пользователей\n"
+        "!top [True] — таблица пользователей\n"
         "!menu — открыть админ-меню\n"
         "!help — список команд"
     )
     await ctx.send(msg)
-
-@bot.command()
-@commands.has_permissions(manage_guild=True)
-async def menu(ctx):
-    await ctx.send("🛠 Меню администратора:", view=AdminMenu())
 
 @bot.command()
 async def add(ctx, member: discord.Member, amount: int):
@@ -117,7 +120,7 @@ async def rewards(ctx):
     await ctx.send("\n".join(lines))
 
 @bot.command()
-async def top(ctx):
+async def top(ctx, send_dm: bool = False):
     if not DATA["users"]:
         return await ctx.send("Нет данных о пользователях.")
     sorted_users = sorted(DATA["users"].items(), key=lambda x: x[1], reverse=True)
@@ -126,7 +129,12 @@ async def top(ctx):
         member = ctx.guild.get_member(int(uid))
         name = member.display_name if member else f"Пользователь {uid}"
         lines.append(f"• {name}: {points} очков")
-    await ctx.send("\n".join(lines))
+    text = "\n".join(lines)
+    if send_dm:
+        await ctx.author.send(text)
+    else:
+        await ctx.send(text)
 
 bot.run(TOKEN)
+
 
