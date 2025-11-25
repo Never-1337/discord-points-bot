@@ -75,25 +75,17 @@ async def menu(ctx):
 
 @bot.command()
 async def help(ctx):
-    await ctx.send(
-        "🛠 **Команды бота:**
-
-"
-        "!add @user <amount> — начислить очки
-"
-        "!remove @user <amount> — снять очки
-"
-        "!setreward @role <threshold> — установить награду
-"
-        "!rewards — список наград
-"
-        "!top [True] — таблица пользователей
-"
-        "!menu — открыть админ-меню
-"
+    msg = (
+        "🛠 **Команды бота:**\n\n"
+        "!add @user <amount> — начислить очки\n"
+        "!remove @user <amount> — снять очки\n"
+        "!setreward @role <threshold> — установить награду\n"
+        "!rewards — список наград\n"
+        "!top [True] — таблица пользователей\n"
+        "!menu — открыть админ-меню\n"
         "!help — список команд"
     )
-
+    await ctx.send(msg)
 @bot.command()
 async def add(ctx, member: discord.Member, amount: int):
     uid = str(member.id)
