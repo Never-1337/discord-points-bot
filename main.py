@@ -13,9 +13,13 @@ import asyncio
 from typing import Dict, List
 
 import discord
+from discord.ext import commands
+from discord.ui import View, Button
+
 # --- Create persistent data directory on Render ---
 DATA_DIR = "/opt/render/project/data"
 os.makedirs(DATA_DIR, exist_ok=True)
+
 
 DATA_FILE = os.path.join(DATA_DIR, "giveaways.json")
 POINTS_FILE = os.path.join(DATA_DIR, "points.json")
@@ -35,12 +39,6 @@ if not TOKEN:
     print("❌ ERROR: Please set TOKEN environment variable")
     print("💡 Command: export TOKEN=your_bot_token_here")
     exit(1)
-
-# Data storage
-DATA_FILE = "giveaways.json"
-POINTS_FILE = "points.json"
-giveaways = {}
-
 
 # Load data
 def load_data():
